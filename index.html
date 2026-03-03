@@ -29,7 +29,6 @@
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    transition: transform 0.3s ease;
   }
 
   .center-sub {
@@ -61,12 +60,6 @@
     height: 12px;
     border-radius: 50%;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .color-btn:hover {
-    transform: scale(1.2);
-    box-shadow: 0 0 6px currentColor;
   }
 
   .green { background: #22c55e; }
@@ -113,11 +106,11 @@ function fetchData() {
 
 function updateChart() {
 
-  const values = rawValues.map((v, i) =>
-    hiddenIndexes.has(i) ? v : v
+  const visibleValues = rawValues.map((v,i)=>
+    hiddenIndexes.has(i) ? null : v
   );
 
-  const activeValues = rawValues.filter((_, i) => !hiddenIndexes.has(i));
+  const activeValues = rawValues.filter((_,i)=>!hiddenIndexes.has(i));
 
   const avg = activeValues.length
     ? (activeValues.reduce((a,b)=>a+b,0)/activeValues.length).toFixed(1)
@@ -129,38 +122,24 @@ function updateChart() {
   if (avg > 90) avgDisplay.classList.add("pulse");
   else avgDisplay.classList.remove("pulse");
 
-  if (!chart) createChart(values);
-  else chart.updateSeries([{ data: values }]);
+  if (!chart) createChart(visibleValues);
+  else chart.updateSeries([{ data: visibleValues }]);
+
+  updateLabelStyles();
 }
 
 function createChart(values) {
 
-  const options = {
+  chart = new ApexCharts(document.querySelector("#chart"), {
     series: [{ data: values }],
     chart: {
       type: 'radar',
       height: '100%',
       background: 'transparent',
-      toolbar: { show: false },
-      animations: { enabled: true },
-      events: {
-        dataPointSelection: function(event, chartContext, config) {
-          const i = config.dataPointIndex;
-          if (hiddenIndexes.has(i)) hiddenIndexes.delete(i);
-          else hiddenIndexes.add(i);
-          updateLabelStyles();
-          updateChart();
-        }
-      }
+      toolbar: { show: false }
     },
-    stroke: {
-      width: 3,
-      colors: [currentColor]
-    },
-    fill: {
-      opacity: 0.4,
-      colors: [currentColor]
-    },
+    stroke: { width: 3, colors: [currentColor] },
+    fill: { opacity: 0.4, colors: [currentColor] },
     markers: {
       size: 6,
       colors: ['#ffffff'],
@@ -171,9 +150,7 @@ function createChart(values) {
       categories: categoriesGlobal,
       labels: {
         style: {
-          colors: categoriesGlobal.map((_,i)=>
-            hiddenIndexes.has(i) ? "#444" : "#e5e5e5"
-          ),
+          colors: "#e5e5e5",
           fontSize: "16px"
         }
       }
@@ -182,45 +159,39 @@ function createChart(values) {
       min: 0,
       max: 100,
       tickAmount: 5,
-      labels: {
-        style: { colors: "#555" }
-      }
+      labels: { style: { colors: "#555" } }
     },
-    grid: {
-      borderColor: "#2a2a2a"
-    },
-    plotOptions: {
-      radar: {
-        polygons: {
-          strokeColors: "#333",
-          connectorColors: "#333"
-        }
-      }
-    }
-  };
+    grid: { borderColor: "#2a2a2a" }
+  });
 
-  chart = new ApexCharts(document.querySelector("#chart"), options);
-  chart.render();
+  chart.render().then(()=>{
+    makeLabelsClickable();
+  });
+}
+
+function makeLabelsClickable() {
+  const labels = document.querySelectorAll('.apexcharts-xaxis text');
+
+  labels.forEach((label, index) => {
+    label.style.cursor = "pointer";
+    label.onclick = () => {
+      if (hiddenIndexes.has(index)) hiddenIndexes.delete(index);
+      else hiddenIndexes.add(index);
+      updateChart();
+    };
+  });
 }
 
 function updateLabelStyles() {
-  chart.updateOptions({
-    xaxis: {
-      labels: {
-        style: {
-          colors: categoriesGlobal.map((_,i)=>
-            hiddenIndexes.has(i) ? "#444" : "#e5e5e5"
-          )
-        }
-      }
-    }
+  const labels = document.querySelectorAll('.apexcharts-xaxis text');
+  labels.forEach((label, i)=>{
+    label.style.fill = hiddenIndexes.has(i) ? "#444" : "#e5e5e5";
   });
 }
 
 function changeColor(color) {
   currentColor = color;
   localStorage.setItem("radarColor", color);
-
   chart.updateOptions({
     stroke: { colors: [color] },
     fill: { colors: [color] },
