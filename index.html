@@ -101,15 +101,19 @@ let currentColor = localStorage.getItem("radarColor") || "#22c55e";
 fetchData();
 
 function fetchData() {
-  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
     .then(response => response.text())
     .then(data => {
 
       const rows = data.trim().split("\n").map(r => r.split(","));
       const dataRows = rows.slice(1);
 
-      const categories = dataRows.map(r => r[0]);
-      const values = dataRows.map(r => Number(r[1]));
+      const categories = dataRows.map(r => r[0].trim());
+
+      const values = dataRows.map(r => {
+        const num = parseFloat(r[1]);
+        return isNaN(num) ? 0 : num;
+      });
 
       const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
 
@@ -128,13 +132,17 @@ function fetchData() {
       if (!chart) {
         createChart(categories, values);
       } else {
-        if (JSON.stringify(values) !== JSON.stringify(previousValues)) {
-          chart.updateSeries([{ data: values }]);
-        }
+        // ALWAYS update (Apex handles diff internally)
+        chart.updateOptions({
+          xaxis: { categories: categories }
+        });
+        chart.updateSeries([{ data: values }]);
       }
 
-      previousValues = values;
-    });
+      // store copy (not reference)
+      previousValues = [...values];
+    })
+    .catch(err => console.error("Fetch error:", err));
 }
 
 function createChart(categories, values) {
