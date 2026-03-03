@@ -1,13 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Grades Radar</title>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<meta charset="UTF-8">
+<title>Grades Radar</title>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #111111; /* 🔥 CHANGE THIS COLOR */
+  }
+
+  #chart {
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+
 </head>
 <body>
 
-<h2>My Grades</h2>
 <div id="chart"></div>
 
 <script>
@@ -16,8 +29,6 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
   .then(data => {
 
     const rows = data.trim().split("\n").map(r => r.split(","));
-
-    // Remove header row
     const dataRows = rows.slice(1);
 
     const categories = dataRows.map(r => r[0]);
@@ -29,15 +40,35 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         data: values
       }],
       chart: {
-        height: 450,
-        type: 'radar'
+        type: 'radar',
+        height: '100%',
+        background: 'transparent'
       },
       xaxis: {
-        categories: categories
+        categories: categories,
+        labels: {
+          style: {
+            colors: "#ffffff"  /* change text color here */
+          }
+        }
       },
       yaxis: {
         min: 0,
-        max: 100
+        max: 100,
+        labels: {
+          style: {
+            colors: "#ffffff"
+          }
+        }
+      },
+      stroke: {
+        width: 3
+      },
+      fill: {
+        opacity: 0.3
+      },
+      markers: {
+        size: 5
       }
     };
 
