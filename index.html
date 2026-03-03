@@ -10,14 +10,33 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #191919; /* Notion dark */
+    background-color: #191919;
     width: 100%;
     height: 100%;
     display: flex;
+    font-family: Inter, sans-serif;
   }
 
   #chart {
     flex: 1;
+  }
+
+  .center-metric {
+    position: absolute;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .center-sub {
+    font-size: 13px;
+    color: #a3a3a3;
+    font-weight: 400;
   }
 </style>
 </head>
@@ -25,6 +44,7 @@
 <body>
 
 <div id="chart"></div>
+<div class="center-metric" id="avgDisplay"></div>
 
 <script>
 fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
@@ -37,10 +57,27 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
     const categories = dataRows.map(r => r[0]);
     const values = dataRows.map(r => Number(r[1]));
 
+    const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
+
+    document.getElementById("avgDisplay").innerHTML = `
+      ${avg}%
+      <div class="center-sub">Average</div>
+    `;
+
+    // Dynamic color based on average
+    let mainColor = "#ff2bd6";
+    if (avg >= 90) mainColor = "#22c55e";
+    else if (avg >= 75) mainColor = "#f59e0b";
+    else mainColor = "#ef4444";
+
     var options = {
       series: [{
-        name: "Grade %",
+        name: "Grades",
         data: values
+      },
+      {
+        name: "Target",
+        data: new Array(values.length).fill(95)
       }],
       chart: {
         type: 'radar',
@@ -55,24 +92,18 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         }
       },
       stroke: {
-        width: 3,
-        colors: ['#ff2bd6']
+        width: [3, 2],
+        colors: [mainColor, "#888888"],
+        dashArray: [0, 5]
       },
       fill: {
-        type: 'gradient',
-        gradient: {
-          shade: 'dark',
-          type: 'vertical',
-          shadeIntensity: 0.4,
-          gradientToColors: ['#d946ef'],
-          opacityFrom: 0.6,
-          opacityTo: 0.25
-        }
+        opacity: [0.45, 0],
+        colors: [mainColor, "#888888"]
       },
       markers: {
-        size: 7,
+        size: 6,
         colors: ['#ffffff'],
-        strokeColor: '#ff2bd6',
+        strokeColor: mainColor,
         strokeWidth: 3
       },
       xaxis: {
@@ -80,7 +111,7 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         labels: {
           style: {
             colors: "#e5e5e5",
-            fontSize: "17px",
+            fontSize: "16px",
             fontWeight: 500
           }
         }
@@ -91,37 +122,34 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         tickAmount: 5,
         labels: {
           style: {
-            colors: "#a3a3a3",
-            fontSize: "13px"
+            colors: "#666666"
           }
         }
       },
       grid: {
-        borderColor: "#9333ea",
-        strokeDashArray: 0
+        borderColor: "#2a2a2a"
       },
       plotOptions: {
         radar: {
-          size: undefined,
           polygons: {
-            strokeColors: "#9333ea",
-            connectorColors: "#9333ea",
-            fill: {
-              colors: ['transparent']
-            }
+            strokeColors: "#333333",
+            connectorColors: "#333333"
           }
         }
       },
-      theme: {
-        mode: 'dark'
+      legend: {
+        show: false
       }
     };
 
     var chart = new ApexCharts(document.querySelector("#chart"), options);
     chart.render();
+
+    // auto refresh every 15s
     setTimeout(() => {
-  window.location.reload();
-}, 15000); // reload every 15 seconds
+      window.location.reload();
+    }, 15000);
+
   });
 </script>
 
