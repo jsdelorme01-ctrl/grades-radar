@@ -164,6 +164,7 @@ function fetchData() {
 
         if (hasChanged) {
 
+          // Enable slower animation
           chart.updateOptions({
             chart: {
               animations: {
@@ -228,15 +229,25 @@ function createChart(categories, values) {
       tickAmount: 5,
       labels: { style: { colors: "#555555" } }
     },
-    grid: { borderColor: "#2a2a2a" }
+    grid: { borderColor: "#2a2a2a" },
+    plotOptions: {
+      radar: {
+        polygons: {
+          strokeColors: "#333333",
+          connectorColors: "#333333"
+        }
+      }
+    }
   });
 
   chart.render();
 }
 
 function triggerVisualEffects() {
+
   const avgDisplay = document.getElementById("avgDisplay");
 
+  // Glow burst
   avgDisplay.style.color = currentColor;
   avgDisplay.classList.add("glow-burst");
 
@@ -245,6 +256,7 @@ function triggerVisualEffects() {
     avgDisplay.style.color = "#ffffff";
   }, 1400);
 
+  // Ripple
   const ripple = document.createElement("div");
   ripple.className = "ripple";
   ripple.style.color = currentColor;
@@ -264,8 +276,7 @@ function changeColor(color) {
   });
 }
 
-/* 🔥 2 SECOND UPDATE */
-setInterval(fetchData, 2000);
+setInterval(fetchData, 15000);
 
 </script>
 </body>
