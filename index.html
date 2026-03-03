@@ -32,6 +32,7 @@
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
+    transition: transform 0.3s ease;
   }
 
   .center-sub {
@@ -40,27 +41,38 @@
     font-weight: 400;
   }
 
-  /* ===== Top Left Buttons ===== */
+  /* Pulse when avg > 90 */
+  .pulse {
+    animation: pulseAnim 1.5s infinite;
+  }
+
+  @keyframes pulseAnim {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.05); }
+    100% { transform: translateY(-50%) scale(1); }
+  }
+
+  /* ===== Mac-style Buttons ===== */
   .color-switcher {
     position: absolute;
-    top: 18px;
-    left: 18px;
+    top: 14px;
+    left: 14px;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     z-index: 10;
   }
 
   .color-btn {
-    width: 18px;
-    height: 18px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid #333;
-    transition: transform 0.2s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
   .color-btn:hover {
-    transform: scale(1.15);
+    transform: scale(1.2);
+    box-shadow: 0 0 6px currentColor;
   }
 
   .green { background: #22c55e; }
@@ -83,104 +95,124 @@
 
 <script>
 let chart;
-let currentColor = "#22c55e";
+let previousValues = [];
+let currentColor = localStorage.getItem("radarColor") || "#22c55e";
 
-fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
-  .then(response => response.text())
-  .then(data => {
+fetchData();
 
-    const rows = data.trim().split("\n").map(r => r.split(","));
-    const dataRows = rows.slice(1);
+function fetchData() {
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
+    .then(response => response.text())
+    .then(data => {
 
-    const categories = dataRows.map(r => r[0]);
-    const values = dataRows.map(r => Number(r[1]));
+      const rows = data.trim().split("\n").map(r => r.split(","));
+      const dataRows = rows.slice(1);
 
-    const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
+      const categories = dataRows.map(r => r[0]);
+      const values = dataRows.map(r => Number(r[1]));
 
-    document.getElementById("avgDisplay").innerHTML = `
-      ${avg}%
-      <div class="center-sub">Average</div>
-    `;
+      const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
 
-    const options = {
-      series: [{
-        name: "Grades",
-        data: values
-      }],
-      chart: {
-        type: 'radar',
-        height: '100%',
-        background: 'transparent',
-        toolbar: { show: false },
-        animations: {
-          enabled: true,
-          animateGradually: { enabled: true },
-          dynamicAnimation: { enabled: true }
-        }
-      },
-      stroke: {
-        width: 3,
-        colors: [currentColor]
-      },
-      fill: {
-        type: 'gradient',
-        gradient: {
-          shade: 'dark',
-          type: 'vertical',
-          shadeIntensity: 0.4,
-          gradientToColors: [currentColor],
-          opacityFrom: 0.6,
-          opacityTo: 0.25
-        }
-      },
-      markers: {
-        size: 6,
-        colors: ['#ffffff'],
-        strokeColor: currentColor,
-        strokeWidth: 3
-      },
-      xaxis: {
-        categories: categories,
-        labels: {
-          style: {
-            colors: "#e5e5e5",
-            fontSize: "16px"
-          }
-        }
-      },
-      yaxis: {
-        min: 0,
-        max: 100,
-        tickAmount: 5,
-        labels: {
-          style: {
-            colors: "#555555"
-          }
-        }
-      },
-      grid: {
-        borderColor: "#2a2a2a"
-      },
-      plotOptions: {
-        radar: {
-          polygons: {
-            strokeColors: "#333333",
-            connectorColors: "#333333"
-          }
+      const avgDisplay = document.getElementById("avgDisplay");
+      avgDisplay.innerHTML = `
+        ${avg}%
+        <div class="center-sub">Average</div>
+      `;
+
+      if (avg > 90) {
+        avgDisplay.classList.add("pulse");
+      } else {
+        avgDisplay.classList.remove("pulse");
+      }
+
+      if (!chart) {
+        createChart(categories, values);
+      } else {
+        if (JSON.stringify(values) !== JSON.stringify(previousValues)) {
+          chart.updateSeries([{ data: values }]);
         }
       }
-    };
 
-    chart = new ApexCharts(document.querySelector("#chart"), options);
-    chart.render();
+      previousValues = values;
+    });
+}
 
-    setTimeout(() => {
-      window.location.reload();
-    }, 15000);
-  });
+function createChart(categories, values) {
+  const options = {
+    series: [{
+      name: "Grades",
+      data: values
+    }],
+    chart: {
+      type: 'radar',
+      height: '100%',
+      background: 'transparent',
+      toolbar: { show: false },
+      animations: {
+        enabled: false
+      }
+    },
+    stroke: {
+      width: 3,
+      colors: [currentColor]
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        type: 'vertical',
+        shadeIntensity: 0.4,
+        gradientToColors: [currentColor],
+        opacityFrom: 0.6,
+        opacityTo: 0.25
+      }
+    },
+    markers: {
+      size: 6,
+      colors: ['#ffffff'],
+      strokeColor: currentColor,
+      strokeWidth: 3
+    },
+    xaxis: {
+      categories: categories,
+      labels: {
+        style: {
+          colors: "#e5e5e5",
+          fontSize: "16px"
+        }
+      }
+    },
+    yaxis: {
+      min: 0,
+      max: 100,
+      tickAmount: 5,
+      labels: {
+        style: {
+          colors: "#555555"
+        }
+      }
+    },
+    grid: {
+      borderColor: "#2a2a2a"
+    },
+    plotOptions: {
+      radar: {
+        polygons: {
+          strokeColors: "#333333",
+          connectorColors: "#333333"
+        }
+      }
+    }
+  };
+
+  chart = new ApexCharts(document.querySelector("#chart"), options);
+  chart.render();
+}
 
 function changeColor(color) {
   currentColor = color;
+  localStorage.setItem("radarColor", color);
+
   chart.updateOptions({
     stroke: { colors: [color] },
     fill: {
@@ -193,6 +225,9 @@ function changeColor(color) {
     }
   });
 }
+
+// Check for updates every 15s (no full reload)
+setInterval(fetchData, 15000);
 </script>
 
 </body>
