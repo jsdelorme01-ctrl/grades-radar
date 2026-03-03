@@ -35,7 +35,6 @@
   .center-sub {
     font-size: 13px;
     color: #a3a3a3;
-    font-weight: 400;
   }
 
   .pulse {
@@ -44,7 +43,7 @@
 
   @keyframes pulseAnim {
     0% { transform: translateY(-50%) scale(1); }
-    50% { transform: translateY(-50%) scale(1.05); }
+    50% { transform: translateY(-50%) scale(1.06); }
     100% { transform: translateY(-50%) scale(1); }
   }
 
@@ -90,7 +89,6 @@
 
 <script>
 let chart;
-let previousValues = [];
 let rawValues = [];
 let categoriesGlobal = [];
 let hiddenIndexes = new Set();
@@ -100,7 +98,7 @@ fetchData();
 
 function fetchData() {
   fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
-    .then(response => response.text())
+    .then(res => res.text())
     .then(data => {
 
       const rows = data.trim().split("\n").map(r => r.split(","));
@@ -114,47 +112,43 @@ function fetchData() {
 }
 
 function updateChart() {
+
   const values = rawValues.map((v, i) =>
-    hiddenIndexes.has(i) ? 0 : v
+    hiddenIndexes.has(i) ? v : v
   );
 
   const activeValues = rawValues.filter((_, i) => !hiddenIndexes.has(i));
 
   const avg = activeValues.length
-    ? (activeValues.reduce((a,b) => a+b, 0) / activeValues.length).toFixed(1)
+    ? (activeValues.reduce((a,b)=>a+b,0)/activeValues.length).toFixed(1)
     : 0;
 
   const avgDisplay = document.getElementById("avgDisplay");
-  avgDisplay.innerHTML = `
-    ${avg}%
-    <div class="center-sub">Average</div>
-  `;
+  avgDisplay.innerHTML = `${avg}%<div class="center-sub">Average</div>`;
 
   if (avg > 90) avgDisplay.classList.add("pulse");
   else avgDisplay.classList.remove("pulse");
 
-  if (!chart) {
-    createChart(values);
-  } else {
-    chart.updateSeries([{ data: values }]);
-  }
+  if (!chart) createChart(values);
+  else chart.updateSeries([{ data: values }]);
 }
 
 function createChart(values) {
+
   const options = {
-    series: [{ name: "Grades", data: values }],
+    series: [{ data: values }],
     chart: {
       type: 'radar',
       height: '100%',
       background: 'transparent',
       toolbar: { show: false },
+      animations: { enabled: true },
       events: {
-        markerClick: function(event, chartContext, { dataPointIndex }) {
-          if (hiddenIndexes.has(dataPointIndex))
-            hiddenIndexes.delete(dataPointIndex);
-          else
-            hiddenIndexes.add(dataPointIndex);
-
+        dataPointSelection: function(event, chartContext, config) {
+          const i = config.dataPointIndex;
+          if (hiddenIndexes.has(i)) hiddenIndexes.delete(i);
+          else hiddenIndexes.add(i);
+          updateLabelStyles();
           updateChart();
         }
       }
@@ -177,7 +171,9 @@ function createChart(values) {
       categories: categoriesGlobal,
       labels: {
         style: {
-          colors: "#e5e5e5",
+          colors: categoriesGlobal.map((_,i)=>
+            hiddenIndexes.has(i) ? "#444" : "#e5e5e5"
+          ),
           fontSize: "16px"
         }
       }
@@ -187,7 +183,7 @@ function createChart(values) {
       max: 100,
       tickAmount: 5,
       labels: {
-        style: { colors: "#555555" }
+        style: { colors: "#555" }
       }
     },
     grid: {
@@ -196,8 +192,8 @@ function createChart(values) {
     plotOptions: {
       radar: {
         polygons: {
-          strokeColors: "#333333",
-          connectorColors: "#333333"
+          strokeColors: "#333",
+          connectorColors: "#333"
         }
       }
     }
@@ -205,6 +201,20 @@ function createChart(values) {
 
   chart = new ApexCharts(document.querySelector("#chart"), options);
   chart.render();
+}
+
+function updateLabelStyles() {
+  chart.updateOptions({
+    xaxis: {
+      labels: {
+        style: {
+          colors: categoriesGlobal.map((_,i)=>
+            hiddenIndexes.has(i) ? "#444" : "#e5e5e5"
+          )
+        }
+      }
+    }
+  });
 }
 
 function changeColor(color) {
