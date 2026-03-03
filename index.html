@@ -129,15 +129,31 @@ function fetchData() {
         avgDisplay.classList.remove("pulse");
       }
 
-      if (!chart) {
-        createChart(categories, values);
-      } else {
-        // ALWAYS update (Apex handles diff internally)
-        chart.updateOptions({
-          xaxis: { categories: categories }
-        });
-        chart.updateSeries([{ data: values }]);
-      }
+     if (!chart) {
+  createChart(categories, values);
+} else {
+
+  const hasChanged =
+    previousValues.length !== values.length ||
+    values.some((v, i) => v !== previousValues[i]);
+
+  if (hasChanged) {
+
+    chart.updateOptions({
+      chart: {
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        }
+      },
+      xaxis: { categories: categories }
+    });
+
+    chart.updateSeries([{ data: values }]);
+
+  }
+}
 
       // store copy (not reference)
       previousValues = [...values];
