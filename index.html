@@ -7,32 +7,44 @@
 </head>
 <body>
 
-  <h2>My Grades Radar</h2>
-  <div id="chart"></div>
+<h2>My Grades</h2>
+<div id="chart"></div>
 
-  <script>
-    fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv")
-      .then(response => response.text())
-      .then(data => {
-        const rows = data.split("\n").map(row => row.split(","));
+<script>
+fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pubhtml")
+  .then(response => response.text())
+  .then(data => {
 
-        const categories = rows.slice(1).map(row => row[0]);
+    const rows = data.trim().split("\n").map(r => r.split(","));
 
-        const series = rows[0].slice(1).map((header, i) => ({
-          name: header,
-          data: rows.slice(1).map(row => Number(row[i + 1]))
-        }));
+    // Remove header row
+    const dataRows = rows.slice(1);
 
-        var options = {
-          series: series,
-          chart: { height: 400, type: 'radar' },
-          xaxis: { categories: categories }
-        };
+    const categories = dataRows.map(r => r[0]);
+    const values = dataRows.map(r => Number(r[1]));
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      });
-  </script>
+    var options = {
+      series: [{
+        name: "Résultat (%)",
+        data: values
+      }],
+      chart: {
+        height: 450,
+        type: 'radar'
+      },
+      xaxis: {
+        categories: categories
+      },
+      yaxis: {
+        min: 0,
+        max: 100
+      }
+    };
+
+    var chart = new ApexCharts(document.querySelector("#chart"), options);
+    chart.render();
+  });
+</script>
 
 </body>
 </html>
