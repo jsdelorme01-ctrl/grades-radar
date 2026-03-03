@@ -82,12 +82,11 @@ let chart;
 let rawValues = [];
 let categories = [];
 let hidden = new Set();
-let currentColor = "#22c55e";
 
 fetchData();
 
 function fetchData() {
-  fetch("YOUR_CSV_LINK&t=" + Date.now())
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
     .then(r => r.text())
     .then(data => {
       const rows = data.trim().split("\n").map(r => r.split(","));
@@ -124,7 +123,7 @@ function buildSubjectList() {
 
 function updateChart() {
 
-  const visibleValues = rawValues.map((v,i) =>
+  const visibleValues = rawValues.map((v,i)=>
     hidden.has(i) ? 0 : v
   );
 
@@ -151,16 +150,16 @@ function updateChart() {
       },
       stroke: {
         width: 3,
-        colors: [currentColor]
+        colors: ["#22c55e"]
       },
       fill: {
         opacity: 0.4,
-        colors: [currentColor]
+        colors: ["#22c55e"]
       },
       markers: {
         size: 6,
         colors: ['#ffffff'],
-        strokeColor: currentColor,
+        strokeColor: "#22c55e",
         strokeWidth: 3
       },
       xaxis: { categories: categories },
