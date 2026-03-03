@@ -21,7 +21,7 @@ html, body {
   flex: 1;
 }
 
-/* ===== Hide Apex Toolbar Completely ===== */
+/* Hide any Apex toolbar */
 .apexcharts-toolbar,
 .apexcharts-menu {
   display: none !important;
@@ -47,7 +47,7 @@ html, body {
   font-weight: 400;
 }
 
-/* ===== Pulse when avg > 90 ===== */
+/* Pulse when avg > 90 */
 .pulse {
   animation: pulseAnim 1.5s infinite;
 }
@@ -58,7 +58,7 @@ html, body {
   100% { transform: translateY(-50%) scale(1); }
 }
 
-/* ===== Glow Burst ===== */
+/* Glow burst */
 .glow-burst {
   animation: glowAnim 1.4s ease-out;
 }
@@ -69,7 +69,7 @@ html, body {
   100% { text-shadow: 0 0 0px currentColor; }
 }
 
-/* ===== Ripple Effect ===== */
+/* Ripple */
 .ripple {
   position: absolute;
   top: 50%;
@@ -89,7 +89,7 @@ html, body {
   100% { width: 500px; height: 500px; opacity: 0; }
 }
 
-/* ===== Mac-style Buttons ===== */
+/* Mac buttons */
 .color-switcher {
   position: absolute;
   top: 14px;
@@ -136,12 +136,20 @@ let chart;
 let previousValues = [];
 let currentColor = localStorage.getItem("radarColor") || "#22c55e";
 
-fetchData();
+window.onload = function() {
+  fetchData();
+  setInterval(fetchData, 10000); // 10 seconds
+};
 
 function fetchData() {
   fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
     .then(res => res.text())
     .then(data => {
+
+      if (!data.includes(",")) {
+        console.error("Invalid CSV returned.");
+        return;
+      }
 
       const rows = data.trim().split("\n").map(r => r.split(","));
       const dataRows = rows.slice(1);
@@ -234,22 +242,13 @@ function createChart(categories, values) {
       tickAmount: 5,
       labels: { style: { colors: "#555555" } }
     },
-    grid: { borderColor: "#2a2a2a" },
-    plotOptions: {
-      radar: {
-        polygons: {
-          strokeColors: "#333333",
-          connectorColors: "#333333"
-        }
-      }
-    }
+    grid: { borderColor: "#2a2a2a" }
   });
 
   chart.render();
 }
 
 function triggerVisualEffects() {
-
   const avgDisplay = document.getElementById("avgDisplay");
 
   avgDisplay.style.color = currentColor;
@@ -278,8 +277,6 @@ function changeColor(color) {
     markers: { strokeColor: color }
   });
 }
-
-setInterval(fetchData, 15000);
 
 </script>
 </body>
