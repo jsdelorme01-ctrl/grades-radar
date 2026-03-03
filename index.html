@@ -22,7 +22,7 @@ html, body {
 .center-metric {
   position: absolute;
   color: #ffffff;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   text-align: center;
   width: 100%;
@@ -33,12 +33,12 @@ html, body {
 }
 
 .center-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: #a3a3a3;
 }
 
-.glow-low { text-shadow: 0 0 6px rgba(245,158,11,0.4); }
-.glow-high { text-shadow: 0 0 12px rgba(34,197,94,0.8); }
+.glow-low { text-shadow: 0 0 8px rgba(245,158,11,0.6); }
+.glow-high { text-shadow: 0 0 18px rgba(34,197,94,0.9); }
 
 .goal-toggle {
   position: absolute;
@@ -47,12 +47,9 @@ html, body {
   font-size: 12px;
   color: #aaa;
   cursor: pointer;
-  user-select: none;
 }
 
-.goal-toggle.active {
-  color: #ffffff;
-}
+.goal-toggle.active { color: #fff; }
 
 </style>
 </head>
@@ -91,16 +88,16 @@ function fetchData() {
       avgDisplay.innerHTML = `${avg}%<div class="center-sub">Average</div>`;
 
       avgDisplay.classList.remove("glow-low","glow-high");
-
       if (avg >= 90) avgDisplay.classList.add("glow-high");
       else if (avg >= 75) avgDisplay.classList.add("glow-low");
 
       if (!chart) {
         createChart(categories, values);
-      } else {
-        if (JSON.stringify(values) !== JSON.stringify(previousValues)) {
-          chart.updateSeries([{ data: values }]);
-        }
+      } else if (JSON.stringify(values) !== JSON.stringify(previousValues)) {
+        chart.updateSeries([
+          { data: values },
+          { data: new Array(values.length).fill(95) }
+        ]);
       }
 
       previousValues = values;
@@ -111,14 +108,8 @@ function createChart(categories, values) {
 
   chart = new ApexCharts(document.querySelector("#chart"), {
     series: [
-      {
-        name: "Grades",
-        data: values
-      },
-      {
-        name: "Goal",
-        data: new Array(values.length).fill(95)
-      }
+      { name: "Grades", data: values },
+      { name: "Goal", data: new Array(values.length).fill(95) }
     ],
     chart: {
       type: 'radar',
@@ -130,7 +121,7 @@ function createChart(categories, values) {
     stroke: {
       width: [3, 2],
       dashArray: [0, 6],
-      colors: ["#22c55e", "#888888"]
+      colors: [currentColor, "#777"]
     },
     fill: {
       type: ['gradient','solid'],
@@ -138,7 +129,7 @@ function createChart(categories, values) {
         shade: 'dark',
         type: 'radial',
         shadeIntensity: 0.5,
-        gradientToColors: ["#22c55e"],
+        gradientToColors: [currentColor],
         opacityFrom: 0.7,
         opacityTo: 0.25
       },
@@ -147,7 +138,7 @@ function createChart(categories, values) {
     markers: {
       size: 6,
       colors: ['#ffffff'],
-      strokeColor: "#22c55e",
+      strokeColor: currentColor,
       strokeWidth: 3
     },
     xaxis: {
@@ -156,8 +147,7 @@ function createChart(categories, values) {
         style: {
           colors: "#e5e5e5",
           fontSize: "16px",
-          fontWeight: 500,
-          letterSpacing: "0.5px"
+          fontWeight: 500
         }
       }
     },
@@ -167,21 +157,7 @@ function createChart(categories, values) {
       tickAmount: 5,
       labels: { style: { colors: "#444" } }
     },
-    grid: {
-      borderColor: "#2a2a2a"
-    },
-    plotOptions: {
-      radar: {
-        polygons: {
-          strokeColors: ["rgba(239,68,68,0.05)",
-                         "rgba(245,158,11,0.05)",
-                         "rgba(34,197,94,0.05)",
-                         "rgba(34,197,94,0.05)",
-                         "rgba(34,197,94,0.05)"],
-          fill: { colors: ["transparent"] }
-        }
-      }
-    },
+    grid: { borderColor: "#2a2a2a" },
     legend: { show: false }
   });
 
@@ -190,16 +166,15 @@ function createChart(categories, values) {
 
 function toggleGoalMode() {
   goalMode = !goalMode;
-  const toggle = document.getElementById("goalToggle");
-  toggle.classList.toggle("active");
+  document.getElementById("goalToggle").classList.toggle("active");
 
   chart.updateOptions({
     stroke: {
-      colors: goalMode ? ["#ffffff", "#ffffff"] : ["#22c55e","#888888"]
+      colors: goalMode ? ["#ffffff","#ffffff"] : [currentColor,"#777"]
     },
     fill: {
       gradient: {
-        gradientToColors: goalMode ? ["#ffffff"] : ["#22c55e"]
+        gradientToColors: goalMode ? ["#ffffff"] : [currentColor]
       }
     }
   });
