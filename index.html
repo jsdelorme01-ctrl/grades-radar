@@ -9,8 +9,8 @@
   html, body {
     margin: 0;
     padding: 0;
-    overflow: hidden; /* 🔥 removes scrollbars */
-    background-color: #0f172a; /* Dark aesthetic */
+    overflow: hidden;
+    background-color: #191919; /* Matches Notion dark */
     width: 100%;
     height: 100%;
   }
@@ -21,6 +21,7 @@
   }
 </style>
 </head>
+
 <body>
 
 <div id="chart"></div>
@@ -44,7 +45,8 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
       chart: {
         type: 'radar',
         height: '100%',
-        background: 'transparent'
+        background: 'transparent',
+        toolbar: { show: false }
       },
       stroke: {
         width: 3,
@@ -62,8 +64,9 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         categories: categories,
         labels: {
           style: {
-            colors: "#e2e8f0",
-            fontSize: "14px"
+            colors: "#d4d4d4",
+            fontSize: "15px",
+            fontFamily: "Inter, sans-serif"
           }
         }
       },
@@ -73,12 +76,12 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         tickAmount: 5,
         labels: {
           style: {
-            colors: "#94a3b8"
+            colors: "#a3a3a3"
           }
         }
       },
       grid: {
-        borderColor: "#334155"
+        borderColor: "#2a2a2a"
       }
     };
 
