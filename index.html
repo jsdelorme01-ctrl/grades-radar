@@ -67,7 +67,6 @@ html, body {
 let chart;
 let previousValues = [];
 let goalMode = false;
-let currentColor = "#22c55e";
 
 fetchData();
 
@@ -94,10 +93,7 @@ function fetchData() {
       if (!chart) {
         createChart(categories, values);
       } else if (JSON.stringify(values) !== JSON.stringify(previousValues)) {
-        chart.updateSeries([
-          { data: values },
-          { data: new Array(values.length).fill(95) }
-        ]);
+        chart.updateSeries([{ data: values }]);
       }
 
       previousValues = values;
@@ -107,38 +103,32 @@ function fetchData() {
 function createChart(categories, values) {
 
   chart = new ApexCharts(document.querySelector("#chart"), {
-    series: [
-      { name: "Grades", data: values },
-      { name: "Goal", data: new Array(values.length).fill(95) }
-    ],
+    series: [{ name: "Grades", data: values }],
     chart: {
       type: 'radar',
       height: '100%',
       background: 'transparent',
-      toolbar: { show: false },
-      animations: { enabled: false }
+      toolbar: { show: false }
     },
     stroke: {
-      width: [3, 2],
-      dashArray: [0, 6],
-      colors: [currentColor, "#777"]
+      width: 3,
+      colors: ["#22c55e"]
     },
     fill: {
-      type: ['gradient','solid'],
+      type: 'gradient',
       gradient: {
         shade: 'dark',
         type: 'radial',
         shadeIntensity: 0.5,
-        gradientToColors: [currentColor],
+        gradientToColors: ["#22c55e"],
         opacityFrom: 0.7,
         opacityTo: 0.25
-      },
-      opacity: [0.6, 0]
+      }
     },
     markers: {
       size: 6,
       colors: ['#ffffff'],
-      strokeColor: currentColor,
+      strokeColor: "#22c55e",
       strokeWidth: 3
     },
     xaxis: {
@@ -157,8 +147,21 @@ function createChart(categories, values) {
       tickAmount: 5,
       labels: { style: { colors: "#444" } }
     },
-    grid: { borderColor: "#2a2a2a" },
-    legend: { show: false }
+    annotations: {
+      yaxis: [{
+        y: 95,
+        borderColor: '#888',
+        strokeDashArray: 6,
+        label: {
+          text: '95% Goal',
+          style: {
+            color: '#aaa',
+            background: 'transparent'
+          }
+        }
+      }]
+    },
+    grid: { borderColor: "#2a2a2a" }
   });
 
   chart.render();
@@ -170,11 +173,11 @@ function toggleGoalMode() {
 
   chart.updateOptions({
     stroke: {
-      colors: goalMode ? ["#ffffff","#ffffff"] : [currentColor,"#777"]
+      colors: goalMode ? ["#ffffff"] : ["#22c55e"]
     },
     fill: {
       gradient: {
-        gradientToColors: goalMode ? ["#ffffff"] : [currentColor]
+        gradientToColors: goalMode ? ["#ffffff"] : ["#22c55e"]
       }
     }
   });
