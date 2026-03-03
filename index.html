@@ -6,88 +6,61 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: #191919;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    font-family: Inter, sans-serif;
-  }
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #191919;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  font-family: Inter, sans-serif;
+}
 
-  #chart {
-    flex: 1;
-  }
+#chart { flex: 1; }
 
-  /* ===== Center Average ===== */
-  .center-metric {
-    position: absolute;
-    color: #ffffff;
-    font-size: 28px;
-    font-weight: 600;
-    text-align: center;
-    width: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    transition: transform 0.3s ease;
-  }
+.center-metric {
+  position: absolute;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
 
-  .center-sub {
-    font-size: 13px;
-    color: #a3a3a3;
-    font-weight: 400;
-  }
+.center-sub {
+  font-size: 13px;
+  color: #a3a3a3;
+}
 
-  /* Pulse when avg > 90 */
-  .pulse {
-    animation: pulseAnim 1.5s infinite;
-  }
+.glow-low { text-shadow: 0 0 6px rgba(245,158,11,0.4); }
+.glow-high { text-shadow: 0 0 12px rgba(34,197,94,0.8); }
 
-  @keyframes pulseAnim {
-    0% { transform: translateY(-50%) scale(1); }
-    50% { transform: translateY(-50%) scale(1.05); }
-    100% { transform: translateY(-50%) scale(1); }
-  }
+.goal-toggle {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+  user-select: none;
+}
 
-  /* ===== Mac-style Buttons ===== */
-  .color-switcher {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    display: flex;
-    gap: 8px;
-    z-index: 10;
-  }
-
-  .color-btn {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .color-btn:hover {
-    transform: scale(1.2);
-    box-shadow: 0 0 6px currentColor;
-  }
-
-  .green { background: #22c55e; }
-  .red { background: #ef4444; }
-  .purple { background: #ff2bd6; }
+.goal-toggle.active {
+  color: #ffffff;
+}
 
 </style>
 </head>
 
 <body>
 
-<div class="color-switcher">
-  <div class="color-btn green" onclick="changeColor('#22c55e')"></div>
-  <div class="color-btn red" onclick="changeColor('#ef4444')"></div>
-  <div class="color-btn purple" onclick="changeColor('#ff2bd6')"></div>
+<div class="goal-toggle" onclick="toggleGoalMode()" id="goalToggle">
+  Goal Mode
 </div>
 
 <div id="chart"></div>
@@ -96,13 +69,14 @@
 <script>
 let chart;
 let previousValues = [];
-let currentColor = localStorage.getItem("radarColor") || "#22c55e";
+let goalMode = false;
+let currentColor = "#22c55e";
 
 fetchData();
 
 function fetchData() {
-  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
-    .then(response => response.text())
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
+    .then(r => r.text())
     .then(data => {
 
       const rows = data.trim().split("\n").map(r => r.split(","));
@@ -111,19 +85,15 @@ function fetchData() {
       const categories = dataRows.map(r => r[0]);
       const values = dataRows.map(r => Number(r[1]));
 
-      const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
+      const avg = (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1);
 
       const avgDisplay = document.getElementById("avgDisplay");
-      avgDisplay.innerHTML = `
-        ${avg}%
-        <div class="center-sub">Average</div>
-      `;
+      avgDisplay.innerHTML = `${avg}%<div class="center-sub">Average</div>`;
 
-      if (avg > 90) {
-        avgDisplay.classList.add("pulse");
-      } else {
-        avgDisplay.classList.remove("pulse");
-      }
+      avgDisplay.classList.remove("glow-low","glow-high");
+
+      if (avg >= 90) avgDisplay.classList.add("glow-high");
+      else if (avg >= 75) avgDisplay.classList.add("glow-low");
 
       if (!chart) {
         createChart(categories, values);
@@ -138,39 +108,46 @@ function fetchData() {
 }
 
 function createChart(categories, values) {
-  const options = {
-    series: [{
-      name: "Grades",
-      data: values
-    }],
+
+  chart = new ApexCharts(document.querySelector("#chart"), {
+    series: [
+      {
+        name: "Grades",
+        data: values
+      },
+      {
+        name: "Goal",
+        data: new Array(values.length).fill(95)
+      }
+    ],
     chart: {
       type: 'radar',
       height: '100%',
       background: 'transparent',
       toolbar: { show: false },
-      animations: {
-        enabled: false
-      }
+      animations: { enabled: false }
     },
     stroke: {
-      width: 3,
-      colors: [currentColor]
+      width: [3, 2],
+      dashArray: [0, 6],
+      colors: ["#22c55e", "#888888"]
     },
     fill: {
-      type: 'gradient',
+      type: ['gradient','solid'],
       gradient: {
         shade: 'dark',
-        type: 'vertical',
-        shadeIntensity: 0.4,
-        gradientToColors: [currentColor],
-        opacityFrom: 0.6,
+        type: 'radial',
+        shadeIntensity: 0.5,
+        gradientToColors: ["#22c55e"],
+        opacityFrom: 0.7,
         opacityTo: 0.25
-      }
+      },
+      opacity: [0.6, 0]
     },
     markers: {
       size: 6,
       colors: ['#ffffff'],
-      strokeColor: currentColor,
+      strokeColor: "#22c55e",
       strokeWidth: 3
     },
     xaxis: {
@@ -178,7 +155,9 @@ function createChart(categories, values) {
       labels: {
         style: {
           colors: "#e5e5e5",
-          fontSize: "16px"
+          fontSize: "16px",
+          fontWeight: 500,
+          letterSpacing: "0.5px"
         }
       }
     },
@@ -186,11 +165,7 @@ function createChart(categories, values) {
       min: 0,
       max: 100,
       tickAmount: 5,
-      labels: {
-        style: {
-          colors: "#555555"
-        }
-      }
+      labels: { style: { colors: "#444" } }
     },
     grid: {
       borderColor: "#2a2a2a"
@@ -198,35 +173,38 @@ function createChart(categories, values) {
     plotOptions: {
       radar: {
         polygons: {
-          strokeColors: "#333333",
-          connectorColors: "#333333"
+          strokeColors: ["rgba(239,68,68,0.05)",
+                         "rgba(245,158,11,0.05)",
+                         "rgba(34,197,94,0.05)",
+                         "rgba(34,197,94,0.05)",
+                         "rgba(34,197,94,0.05)"],
+          fill: { colors: ["transparent"] }
         }
       }
-    }
-  };
+    },
+    legend: { show: false }
+  });
 
-  chart = new ApexCharts(document.querySelector("#chart"), options);
   chart.render();
 }
 
-function changeColor(color) {
-  currentColor = color;
-  localStorage.setItem("radarColor", color);
+function toggleGoalMode() {
+  goalMode = !goalMode;
+  const toggle = document.getElementById("goalToggle");
+  toggle.classList.toggle("active");
 
   chart.updateOptions({
-    stroke: { colors: [color] },
+    stroke: {
+      colors: goalMode ? ["#ffffff", "#ffffff"] : ["#22c55e","#888888"]
+    },
     fill: {
       gradient: {
-        gradientToColors: [color]
+        gradientToColors: goalMode ? ["#ffffff"] : ["#22c55e"]
       }
-    },
-    markers: {
-      strokeColor: color
     }
   });
 }
 
-// Check for updates every 15s (no full reload)
 setInterval(fetchData, 15000);
 </script>
 
