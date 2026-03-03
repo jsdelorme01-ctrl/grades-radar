@@ -119,6 +119,9 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
 
     var chart = new ApexCharts(document.querySelector("#chart"), options);
     chart.render();
+    setTimeout(() => {
+  window.location.reload();
+}, 15000); // reload every 15 seconds
   });
 </script>
 
