@@ -21,6 +21,7 @@
     flex: 1;
   }
 
+  /* ===== Center Average ===== */
   .center-metric {
     position: absolute;
     color: #ffffff;
@@ -38,15 +39,52 @@
     color: #a3a3a3;
     font-weight: 400;
   }
+
+  /* ===== Top Left Buttons ===== */
+  .color-switcher {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+  }
+
+  .color-btn {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #333;
+    transition: transform 0.2s ease;
+  }
+
+  .color-btn:hover {
+    transform: scale(1.15);
+  }
+
+  .green { background: #22c55e; }
+  .red { background: #ef4444; }
+  .purple { background: #ff2bd6; }
+
 </style>
 </head>
 
 <body>
 
+<div class="color-switcher">
+  <div class="color-btn green" onclick="changeColor('#22c55e')"></div>
+  <div class="color-btn red" onclick="changeColor('#ef4444')"></div>
+  <div class="color-btn purple" onclick="changeColor('#ff2bd6')"></div>
+</div>
+
 <div id="chart"></div>
 <div class="center-metric" id="avgDisplay"></div>
 
 <script>
+let chart;
+let currentColor = "#22c55e";
+
 fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
   .then(response => response.text())
   .then(data => {
@@ -64,12 +102,7 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
       <div class="center-sub">Average</div>
     `;
 
-    let mainColor = "#ff2bd6";
-    if (avg >= 90) mainColor = "#22c55e";
-    else if (avg >= 75) mainColor = "#f59e0b";
-    else mainColor = "#ef4444";
-
-    var options = {
+    const options = {
       series: [{
         name: "Grades",
         data: values
@@ -78,11 +111,16 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
         type: 'radar',
         height: '100%',
         background: 'transparent',
-        toolbar: { show: false }
+        toolbar: { show: false },
+        animations: {
+          enabled: true,
+          animateGradually: { enabled: true },
+          dynamicAnimation: { enabled: true }
+        }
       },
       stroke: {
         width: 3,
-        colors: [mainColor]
+        colors: [currentColor]
       },
       fill: {
         type: 'gradient',
@@ -90,7 +128,7 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
           shade: 'dark',
           type: 'vertical',
           shadeIntensity: 0.4,
-          gradientToColors: [mainColor],
+          gradientToColors: [currentColor],
           opacityFrom: 0.6,
           opacityTo: 0.25
         }
@@ -98,7 +136,7 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
       markers: {
         size: 6,
         colors: ['#ffffff'],
-        strokeColor: mainColor,
+        strokeColor: currentColor,
         strokeWidth: 3
       },
       xaxis: {
@@ -133,14 +171,28 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52
       }
     };
 
-    var chart = new ApexCharts(document.querySelector("#chart"), options);
+    chart = new ApexCharts(document.querySelector("#chart"), options);
     chart.render();
 
     setTimeout(() => {
       window.location.reload();
     }, 15000);
-
   });
+
+function changeColor(color) {
+  currentColor = color;
+  chart.updateOptions({
+    stroke: { colors: [color] },
+    fill: {
+      gradient: {
+        gradientToColors: [color]
+      }
+    },
+    markers: {
+      strokeColor: color
+    }
+  });
+}
 </script>
 
 </body>
