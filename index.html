@@ -21,6 +21,12 @@ html, body {
   flex: 1;
 }
 
+/* ===== Hide Apex Toolbar Completely ===== */
+.apexcharts-toolbar,
+.apexcharts-menu {
+  display: none !important;
+}
+
 /* ===== Center Average ===== */
 .center-metric {
   position: absolute;
@@ -39,6 +45,17 @@ html, body {
   font-size: 13px;
   color: #a3a3a3;
   font-weight: 400;
+}
+
+/* ===== Pulse when avg > 90 ===== */
+.pulse {
+  animation: pulseAnim 1.5s infinite;
+}
+
+@keyframes pulseAnim {
+  0% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.05); }
+  100% { transform: translateY(-50%) scale(1); }
 }
 
 /* ===== Glow Burst ===== */
@@ -72,18 +89,7 @@ html, body {
   100% { width: 500px; height: 500px; opacity: 0; }
 }
 
-/* ===== Pulse when avg > 90 ===== */
-.pulse {
-  animation: pulseAnim 1.5s infinite;
-}
-
-@keyframes pulseAnim {
-  0% { transform: translateY(-50%) scale(1); }
-  50% { transform: translateY(-50%) scale(1.05); }
-  100% { transform: translateY(-50%) scale(1); }
-}
-
-/* ===== Mac Buttons ===== */
+/* ===== Mac-style Buttons ===== */
 .color-switcher {
   position: absolute;
   top: 14px;
@@ -164,7 +170,6 @@ function fetchData() {
 
         if (hasChanged) {
 
-          // Enable slower animation
           chart.updateOptions({
             chart: {
               animations: {
@@ -247,7 +252,6 @@ function triggerVisualEffects() {
 
   const avgDisplay = document.getElementById("avgDisplay");
 
-  // Glow burst
   avgDisplay.style.color = currentColor;
   avgDisplay.classList.add("glow-burst");
 
@@ -256,7 +260,6 @@ function triggerVisualEffects() {
     avgDisplay.style.color = "#ffffff";
   }, 1400);
 
-  // Ripple
   const ripple = document.createElement("div");
   ripple.className = "ripple";
   ripple.style.color = currentColor;
