@@ -6,171 +6,227 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background-color: #191919;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  font-family: Inter, sans-serif;
-}
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #191919;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    font-family: Inter, sans-serif;
+  }
 
-#chart { flex: 1; }
+  #chart {
+    flex: 1;
+  }
 
-.center-metric {
-  position: absolute;
-  color: #ffffff;
-  font-size: 28px;
-  font-weight: 600;
-  text-align: center;
-  width: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
+  /* ===== Center Average ===== */
+  .center-metric {
+    position: absolute;
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
 
-.center-sub {
-  font-size: 13px;
-  color: #a3a3a3;
-}
+  .center-sub {
+    font-size: 13px;
+    color: #a3a3a3;
+    font-weight: 400;
+  }
 
-.pulse {
-  animation: pulseAnim 1.5s infinite;
-}
+  /* Pulse when avg > 90 */
+  .pulse {
+    animation: pulseAnim 1.5s infinite;
+  }
 
-@keyframes pulseAnim {
-  0% { transform: translateY(-50%) scale(1); }
-  50% { transform: translateY(-50%) scale(1.06); }
-  100% { transform: translateY(-50%) scale(1); }
-}
+  @keyframes pulseAnim {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.05); }
+    100% { transform: translateY(-50%) scale(1); }
+  }
 
-.subject-list {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-}
+  /* ===== Mac-style Buttons ===== */
+  .color-switcher {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
 
-.subject-item {
-  cursor: pointer;
-  color: #e5e5e5;
-  opacity: 1;
-  transition: opacity 0.2s ease;
-}
+  .color-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
 
-.subject-item.hidden {
-  opacity: 0.35;
-}
+  .color-btn:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  .green { background: #22c55e; }
+  .red { background: #ef4444; }
+  .purple { background: #ff2bd6; }
 
 </style>
 </head>
 
 <body>
 
-<div class="subject-list" id="subjectList"></div>
+<div class="color-switcher">
+  <div class="color-btn green" onclick="changeColor('#22c55e')"></div>
+  <div class="color-btn red" onclick="changeColor('#ef4444')"></div>
+  <div class="color-btn purple" onclick="changeColor('#ff2bd6')"></div>
+</div>
 
 <div id="chart"></div>
 <div class="center-metric" id="avgDisplay"></div>
 
 <script>
 let chart;
-let rawValues = [];
-let categories = [];
-let hidden = new Set();
+let previousValues = [];
+let currentColor = localStorage.getItem("radarColor") || "#22c55e";
 
 fetchData();
 
 function fetchData() {
-  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
-    .then(r => r.text())
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + new Date().getTime())
+    .then(response => response.text())
     .then(data => {
+
       const rows = data.trim().split("\n").map(r => r.split(","));
       const dataRows = rows.slice(1);
 
-      categories = dataRows.map(r => r[0]);
-      rawValues = dataRows.map(r => Number(r[1]));
+      const categories = dataRows.map(r => r[0]);
+      const values = dataRows.map(r => Number(r[1]));
 
-      buildSubjectList();
-      updateChart();
+      const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
+
+      const avgDisplay = document.getElementById("avgDisplay");
+      avgDisplay.innerHTML = `
+        ${avg}%
+        <div class="center-sub">Average</div>
+      `;
+
+      if (avg > 90) {
+        avgDisplay.classList.add("pulse");
+      } else {
+        avgDisplay.classList.remove("pulse");
+      }
+
+      if (!chart) {
+        createChart(categories, values);
+      } else {
+        if (JSON.stringify(values) !== JSON.stringify(previousValues)) {
+          chart.updateSeries([{ data: values }]);
+        }
+      }
+
+      previousValues = values;
     });
 }
 
-function buildSubjectList() {
-  const container = document.getElementById("subjectList");
-  container.innerHTML = "";
+function createChart(categories, values) {
+  const options = {
+    series: [{
+      name: "Grades",
+      data: values
+    }],
+    chart: {
+      type: 'radar',
+      height: '100%',
+      background: 'transparent',
+      toolbar: { show: false },
+      animations: {
+        enabled: false
+      }
+    },
+    stroke: {
+      width: 3,
+      colors: [currentColor]
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        type: 'vertical',
+        shadeIntensity: 0.4,
+        gradientToColors: [currentColor],
+        opacityFrom: 0.6,
+        opacityTo: 0.25
+      }
+    },
+    markers: {
+      size: 6,
+      colors: ['#ffffff'],
+      strokeColor: currentColor,
+      strokeWidth: 3
+    },
+    xaxis: {
+      categories: categories,
+      labels: {
+        style: {
+          colors: "#e5e5e5",
+          fontSize: "16px"
+        }
+      }
+    },
+    yaxis: {
+      min: 0,
+      max: 100,
+      tickAmount: 5,
+      labels: {
+        style: {
+          colors: "#555555"
+        }
+      }
+    },
+    grid: {
+      borderColor: "#2a2a2a"
+    },
+    plotOptions: {
+      radar: {
+        polygons: {
+          strokeColors: "#333333",
+          connectorColors: "#333333"
+        }
+      }
+    }
+  };
 
-  categories.forEach((name, i) => {
-    const div = document.createElement("div");
-    div.className = "subject-item";
-    div.innerText = name;
+  chart = new ApexCharts(document.querySelector("#chart"), options);
+  chart.render();
+}
 
-    div.onclick = () => {
-      if (hidden.has(i)) hidden.delete(i);
-      else hidden.add(i);
+function changeColor(color) {
+  currentColor = color;
+  localStorage.setItem("radarColor", color);
 
-      div.classList.toggle("hidden");
-      updateChart();
-    };
-
-    container.appendChild(div);
+  chart.updateOptions({
+    stroke: { colors: [color] },
+    fill: {
+      gradient: {
+        gradientToColors: [color]
+      }
+    },
+    markers: {
+      strokeColor: color
+    }
   });
 }
 
-function updateChart() {
-
-  const visibleValues = rawValues.map((v,i)=>
-    hidden.has(i) ? 0 : v
-  );
-
-  const activeValues = rawValues.filter((_,i)=>!hidden.has(i));
-
-  const avg = activeValues.length
-    ? (activeValues.reduce((a,b)=>a+b,0)/activeValues.length).toFixed(1)
-    : 0;
-
-  const avgDisplay = document.getElementById("avgDisplay");
-  avgDisplay.innerHTML = `${avg}%<div class="center-sub">Average</div>`;
-
-  if (avg > 90) avgDisplay.classList.add("pulse");
-  else avgDisplay.classList.remove("pulse");
-
-  if (!chart) {
-    chart = new ApexCharts(document.querySelector("#chart"), {
-      series: [{ data: visibleValues }],
-      chart: {
-        type: 'radar',
-        height: '100%',
-        background: 'transparent',
-        toolbar: { show: false }
-      },
-      stroke: {
-        width: 3,
-        colors: ["#22c55e"]
-      },
-      fill: {
-        opacity: 0.4,
-        colors: ["#22c55e"]
-      },
-      markers: {
-        size: 6,
-        colors: ['#ffffff'],
-        strokeColor: "#22c55e",
-        strokeWidth: 3
-      },
-      xaxis: { categories: categories },
-      yaxis: { min: 0, max: 100 }
-    });
-    chart.render();
-  } else {
-    chart.updateSeries([{ data: visibleValues }]);
-  }
-}
-
+// Check for updates every 15s (no full reload)
 setInterval(fetchData, 15000);
 </script>
 
