@@ -1,21 +1,38 @@
-fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv")
-  .then(response => response.text())
-  .then(data => {
-    const rows = data.split("\n").map(row => row.split(","));
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Grades Radar</title>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
 
-    const categories = rows.slice(1).map(row => row[0]);
+  <h2>My Grades Radar</h2>
+  <div id="chart"></div>
 
-    const series = rows[0].slice(1).map((header, i) => ({
-      name: header,
-      data: rows.slice(1).map(row => Number(row[i + 1]))
-    }));
+  <script>
+    fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv")
+      .then(response => response.text())
+      .then(data => {
+        const rows = data.split("\n").map(row => row.split(","));
 
-    var options = {
-      series: series,
-      chart: { height: 400, type: 'radar' },
-      xaxis: { categories: categories }
-    };
+        const categories = rows.slice(1).map(row => row[0]);
 
-    var chart = new ApexCharts(document.querySelector("#chart"), options);
-    chart.render();
-  });
+        const series = rows[0].slice(1).map((header, i) => ({
+          name: header,
+          data: rows.slice(1).map(row => Number(row[i + 1]))
+        }));
+
+        var options = {
+          series: series,
+          chart: { height: 400, type: 'radar' },
+          xaxis: { categories: categories }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      });
+  </script>
+
+</body>
+</html>
