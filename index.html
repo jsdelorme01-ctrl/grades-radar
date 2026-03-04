@@ -6,36 +6,67 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <style>
-/* (YOUR CSS EXACTLY THE SAME — NOT CHANGED) */
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden;
   background-color: #191919;
   width: 100%;
   height: 100%;
   display: flex;
   font-family: Inter, sans-serif;
+  position: relative;
 }
 
-#chart { flex: 1; }
+#chart {
+  width: 100%;
+  height: 100%;
+}
 
 .center-metric {
   position: absolute;
   color: #ffffff;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   text-align: center;
   width: 100%;
   top: 50%;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
 .center-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: #a3a3a3;
   font-weight: 400;
+}
+
+/* Glow */
+.glow-burst {
+  animation: glowAnim 1.2s ease-out;
+}
+
+@keyframes glowAnim {
+  0%   { text-shadow: 0 0 0px currentColor; }
+  40%  { text-shadow: 0 0 18px currentColor; }
+  100% { text-shadow: 0 0 0px currentColor; }
+}
+
+/* Ripple */
+.ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid currentColor;
+  pointer-events: none;
+  animation: rippleAnim 1.2s ease-out forwards;
+}
+
+@keyframes rippleAnim {
+  0%   { width: 10px; height: 10px; opacity: 0.6; }
+  100% { width: 500px; height: 500px; opacity: 0; }
 }
 </style>
 </head>
@@ -49,8 +80,8 @@ html, body {
 
 let chart;
 let previousValues = [];
-let stableCounter = 0;
 let candidateValues = [];
+let stableCount = 0;
 let currentColor = "#22c55e";
 
 fetchData();
@@ -65,12 +96,8 @@ function fetchData() {
       const dataRows = rows.slice(1);
 
       const categories = dataRows.map(r => r[0].trim());
-      const values = dataRows.map(r => {
-        const num = parseFloat(r[1]);
-        return isNaN(num) ? 0 : num;
-      });
+      const values = dataRows.map(r => parseFloat(r[1]) || 0);
 
-      // If first load
       if (!chart) {
         previousValues = [...values];
         createChart(categories, values);
@@ -78,29 +105,26 @@ function fetchData() {
         return;
       }
 
-      // Compare to previous
-      const hasChanged =
+      const changed =
         previousValues.length !== values.length ||
-        values.some((v, i) => v !== previousValues[i]);
+        values.some((v,i) => v !== previousValues[i]);
 
-      if (!hasChanged) {
-        stableCounter = 0;
+      if (!changed) {
+        stableCount = 0;
         return;
       }
 
-      // If changed, check stability
+      // Stability check (prevents partial updates)
       if (JSON.stringify(values) === JSON.stringify(candidateValues)) {
-        stableCounter++;
+        stableCount++;
       } else {
         candidateValues = [...values];
-        stableCounter = 1;
+        stableCount = 1;
       }
 
-      // Require 3 identical reads before updating
-      if (stableCounter >= 3) {
-
+      if (stableCount >= 3) {
+        stableCount = 0;
         previousValues = [...values];
-        stableCounter = 0;
 
         chart.updateOptions({
           chart: {
@@ -110,19 +134,39 @@ function fetchData() {
               speed: 1200
             }
           },
-          xaxis: { categories: categories }
+          xaxis: { categories }
         });
 
         chart.updateSeries([{ data: values }]);
         updateAverage(values);
+        triggerEffects();
       }
     });
 }
 
 function updateAverage(values) {
-  const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
+  const avg = (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1);
   document.getElementById("avgDisplay").innerHTML =
     `${avg}%<div class="center-sub">Average</div>`;
+}
+
+function triggerEffects() {
+  const el = document.getElementById("avgDisplay");
+
+  el.style.color = currentColor;
+  el.classList.add("glow-burst");
+
+  setTimeout(()=>{
+    el.classList.remove("glow-burst");
+    el.style.color = "#ffffff";
+  },1200);
+
+  const ripple = document.createElement("div");
+  ripple.className = "ripple";
+  ripple.style.color = currentColor;
+  document.body.appendChild(ripple);
+
+  setTimeout(()=> ripple.remove(),1200);
 }
 
 function createChart(categories, values) {
@@ -152,266 +196,15 @@ function createChart(categories, values) {
       strokeWidth: 3
     },
     xaxis: {
-      categories: categories,
-      labels: {
-        style: { colors: "#e5e5e5", fontSize: "16px" }
-      }
+      categories,
+      labels: { style: { colors:"#e5e5e5", fontSize:"16px" } }
     },
-    yaxis: {
-      min: 0,
-      max: 100,
-      tickAmount: 5
-    }
+    yaxis: { min:0, max:100, tickAmount:5 },
+    grid: { borderColor:"#2a2a2a" }
   });
 
   chart.render();
 }
-
-</script>
-</body>
-</html>
-.center-sub {
-  font-size: 13px;
-  color: #a3a3a3;
-  font-weight: 400;
-}
-
-/* ===== Glow Burst ===== */
-.glow-burst {
-  animation: glowAnim 1.4s ease-out;
-}
-
-@keyframes glowAnim {
-  0%   { text-shadow: 0 0 0px currentColor; }
-  40%  { text-shadow: 0 0 18px currentColor; }
-  100% { text-shadow: 0 0 0px currentColor; }
-}
-
-/* ===== Ripple Effect ===== */
-.ripple {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid currentColor;
-  opacity: 0.7;
-  pointer-events: none;
-  animation: rippleAnim 1.4s ease-out forwards;
-}
-
-@keyframes rippleAnim {
-  0%   { width: 10px; height: 10px; opacity: 0.6; }
-  100% { width: 500px; height: 500px; opacity: 0; }
-}
-
-/* ===== Pulse when avg > 90 ===== */
-.pulse {
-  animation: pulseAnim 1.5s infinite;
-}
-
-@keyframes pulseAnim {
-  0% { transform: translateY(-50%) scale(1); }
-  50% { transform: translateY(-50%) scale(1.05); }
-  100% { transform: translateY(-50%) scale(1); }
-}
-
-/* ===== Mac Buttons ===== */
-.color-switcher {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  display: flex;
-  gap: 8px;
-  z-index: 10;
-}
-
-.color-btn {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.color-btn:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 6px currentColor;
-}
-
-.green { background: #22c55e; }
-.red { background: #ef4444; }
-.purple { background: #ff2bd6; }
-
-</style>
-</head>
-
-<body>
-
-<div class="color-switcher">
-  <div class="color-btn green" onclick="changeColor('#22c55e')"></div>
-  <div class="color-btn red" onclick="changeColor('#ef4444')"></div>
-  <div class="color-btn purple" onclick="changeColor('#ff2bd6')"></div>
-</div>
-
-<div id="chart"></div>
-<div class="center-metric" id="avgDisplay"></div>
-
-<script>
-
-let chart;
-let previousValues = [];
-let currentColor = localStorage.getItem("radarColor") || "#22c55e";
-
-fetchData();
-
-function fetchData() {
-  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
-    .then(res => res.text())
-    .then(data => {
-
-      const rows = data.trim().split("\n").map(r => r.split(","));
-      const dataRows = rows.slice(1);
-
-      const categories = dataRows.map(r => r[0].trim());
-      const values = dataRows.map(r => {
-        const num = parseFloat(r[1]);
-        return isNaN(num) ? 0 : num;
-      });
-
-      const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
-
-      const avgDisplay = document.getElementById("avgDisplay");
-      avgDisplay.innerHTML = `${avg}%<div class="center-sub">Average</div>`;
-
-      if (avg > 90) avgDisplay.classList.add("pulse");
-      else avgDisplay.classList.remove("pulse");
-
-      if (!chart) {
-        createChart(categories, values);
-      } else {
-
-        const hasChanged =
-          previousValues.length !== values.length ||
-          values.some((v, i) => v !== previousValues[i]);
-
-        if (hasChanged) {
-
-          // Enable slower animation
-          chart.updateOptions({
-            chart: {
-              animations: {
-                enabled: true,
-                easing: 'easeinout',
-                speed: 1400
-              }
-            },
-            xaxis: { categories: categories }
-          });
-
-          chart.updateSeries([{ data: values }]);
-
-          triggerVisualEffects();
-        }
-      }
-
-      previousValues = [...values];
-    });
-}
-
-function createChart(categories, values) {
-  chart = new ApexCharts(document.querySelector("#chart"), {
-    series: [{ name: "Grades", data: values }],
-    chart: {
-      type: 'radar',
-      height: '100%',
-      background: 'transparent',
-      toolbar: { show: false },
-      animations: { enabled: false }
-    },
-    stroke: {
-      width: 3,
-      colors: [currentColor]
-    },
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shade: 'dark',
-        type: 'vertical',
-        shadeIntensity: 0.4,
-        gradientToColors: [currentColor],
-        opacityFrom: 0.6,
-        opacityTo: 0.25
-      }
-    },
-    markers: {
-      size: 6,
-      colors: ['#ffffff'],
-      strokeColor: currentColor,
-      strokeWidth: 3
-    },
-    xaxis: {
-      categories: categories,
-      labels: {
-        style: { colors: "#e5e5e5", fontSize: "16px" }
-      }
-    },
-    yaxis: {
-      min: 0,
-      max: 100,
-      tickAmount: 5,
-      labels: { style: { colors: "#555555" } }
-    },
-    grid: { borderColor: "#2a2a2a" },
-    plotOptions: {
-      radar: {
-        polygons: {
-          strokeColors: "#333333",
-          connectorColors: "#333333"
-        }
-      }
-    }
-  });
-
-  chart.render();
-}
-
-function triggerVisualEffects() {
-
-  const avgDisplay = document.getElementById("avgDisplay");
-
-  // Glow burst
-  avgDisplay.style.color = currentColor;
-  avgDisplay.classList.add("glow-burst");
-
-  setTimeout(() => {
-    avgDisplay.classList.remove("glow-burst");
-    avgDisplay.style.color = "#ffffff";
-  }, 1400);
-
-  // Ripple
-  const ripple = document.createElement("div");
-  ripple.className = "ripple";
-  ripple.style.color = currentColor;
-  document.body.appendChild(ripple);
-
-  setTimeout(() => ripple.remove(), 1400);
-}
-
-function changeColor(color) {
-  currentColor = color;
-  localStorage.setItem("radarColor", color);
-
-  chart.updateOptions({
-    stroke: { colors: [color] },
-    fill: { gradient: { gradientToColors: [color] } },
-    markers: { strokeColor: color }
-  });
-}
-
-setInterval(fetchData, 15000);
 
 </script>
 </body>
