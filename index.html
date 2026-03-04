@@ -6,20 +6,33 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <style>
+
+/* ===== FULLSCREEN FIX (removes white bars) ===== */
 html, body {
-  margin: 0;
-  padding: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden !important;
   background-color: #191919;
-  width: 100%;
-  height: 100%;
   display: flex;
   font-family: Inter, sans-serif;
   position: relative;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+/* Hide scrollbars completely */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Chart fills entire frame */
 #chart {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
 }
 
 /* ===== Center Metric ===== */
@@ -120,7 +133,7 @@ let stableCount = 0;
 let currentColor = localStorage.getItem("radarColor") || "#22c55e";
 
 fetchData();
-setInterval(fetchData, 2000); // 2 sec polling
+setInterval(fetchData, 2000); // 2 second polling
 
 function fetchData() {
   fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
@@ -239,11 +252,11 @@ function createChart(categories, values) {
       tickAmount:5,
       labels: { style: { colors:"#cccccc" } }
     },
-    grid: { borderColor:"#444444" }, /* Lighter inner lines */
+    grid: { borderColor:"#444444" },
     plotOptions: {
       radar: {
         polygons: {
-          strokeColors: "#555555",  /* Lighter inner rings */
+          strokeColors: "#555555",
           connectorColors: "#555555"
         }
       }
