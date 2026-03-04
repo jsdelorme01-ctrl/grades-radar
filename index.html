@@ -22,6 +22,7 @@ html, body {
   height: 100%;
 }
 
+/* ===== Center Metric ===== */
 .center-metric {
   position: absolute;
   color: #ffffff;
@@ -37,11 +38,11 @@ html, body {
 
 .center-sub {
   font-size: 14px;
-  color: #a3a3a3;
+  color: #cfcfcf;
   font-weight: 400;
 }
 
-/* Glow */
+/* ===== Glow ===== */
 .glow-burst {
   animation: glowAnim 1.2s ease-out;
 }
@@ -52,7 +53,7 @@ html, body {
   100% { text-shadow: 0 0 0px currentColor; }
 }
 
-/* Ripple */
+/* ===== Ripple ===== */
 .ripple {
   position: absolute;
   top: 50%;
@@ -68,10 +69,44 @@ html, body {
   0%   { width: 10px; height: 10px; opacity: 0.6; }
   100% { width: 500px; height: 500px; opacity: 0; }
 }
+
+/* ===== Color Buttons ===== */
+.color-switcher {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.color-btn {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.color-btn:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px currentColor;
+}
+
+.green { background: #22c55e; }
+.red { background: #ef4444; }
+.purple { background: #ff2bd6; }
+
 </style>
 </head>
 
 <body>
+
+<div class="color-switcher">
+  <div class="color-btn green" onclick="changeColor('#22c55e')"></div>
+  <div class="color-btn red" onclick="changeColor('#ef4444')"></div>
+  <div class="color-btn purple" onclick="changeColor('#ff2bd6')"></div>
+</div>
 
 <div id="chart"></div>
 <div class="center-metric" id="avgDisplay"></div>
@@ -82,10 +117,10 @@ let chart;
 let previousValues = [];
 let candidateValues = [];
 let stableCount = 0;
-let currentColor = "#22c55e";
+let currentColor = localStorage.getItem("radarColor") || "#22c55e";
 
 fetchData();
-setInterval(fetchData, 2000); // 2 second polling
+setInterval(fetchData, 2000); // 2 sec polling
 
 function fetchData() {
   fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
@@ -107,14 +142,13 @@ function fetchData() {
 
       const changed =
         previousValues.length !== values.length ||
-        values.some((v,i) => v !== previousValues[i]);
+        values.some((v,i)=>v!==previousValues[i]);
 
       if (!changed) {
         stableCount = 0;
         return;
       }
 
-      // Stability check (prevents partial updates)
       if (JSON.stringify(values) === JSON.stringify(candidateValues)) {
         stableCount++;
       } else {
@@ -199,11 +233,35 @@ function createChart(categories, values) {
       categories,
       labels: { style: { colors:"#e5e5e5", fontSize:"16px" } }
     },
-    yaxis: { min:0, max:100, tickAmount:5 },
-    grid: { borderColor:"#2a2a2a" }
+    yaxis: {
+      min:0,
+      max:100,
+      tickAmount:5,
+      labels: { style: { colors:"#cccccc" } }
+    },
+    grid: { borderColor:"#444444" }, /* Lighter inner lines */
+    plotOptions: {
+      radar: {
+        polygons: {
+          strokeColors: "#555555",  /* Lighter inner rings */
+          connectorColors: "#555555"
+        }
+      }
+    }
   });
 
   chart.render();
+}
+
+function changeColor(color) {
+  currentColor = color;
+  localStorage.setItem("radarColor", color);
+
+  chart.updateOptions({
+    stroke: { colors: [color] },
+    fill: { gradient: { gradientToColors: [color] } },
+    markers: { strokeColor: color }
+  });
 }
 
 </script>
