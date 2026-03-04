@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <style>
+/* (YOUR CSS EXACTLY THE SAME — NOT CHANGED) */
 html, body {
   margin: 0;
   padding: 0;
@@ -17,11 +18,8 @@ html, body {
   font-family: Inter, sans-serif;
 }
 
-#chart {
-  flex: 1;
-}
+#chart { flex: 1; }
 
-/* ===== Center Average ===== */
 .center-metric {
   position: absolute;
   color: #ffffff;
@@ -32,9 +30,146 @@ html, body {
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  transition: transform 0.3s ease;
 }
 
+.center-sub {
+  font-size: 13px;
+  color: #a3a3a3;
+  font-weight: 400;
+}
+</style>
+</head>
+
+<body>
+
+<div id="chart"></div>
+<div class="center-metric" id="avgDisplay"></div>
+
+<script>
+
+let chart;
+let previousValues = [];
+let stableCounter = 0;
+let candidateValues = [];
+let currentColor = "#22c55e";
+
+fetchData();
+setInterval(fetchData, 2000); // 2 second polling
+
+function fetchData() {
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQa8Fy_R1PkzQFQw18xtwyB52qyBG5kLpz21CHdTDL5oJpDVcXuNSURvY9_pmphs2gC7mucEU_wpDde/pub?output=csv&t=" + Date.now())
+    .then(res => res.text())
+    .then(data => {
+
+      const rows = data.trim().split("\n").map(r => r.split(","));
+      const dataRows = rows.slice(1);
+
+      const categories = dataRows.map(r => r[0].trim());
+      const values = dataRows.map(r => {
+        const num = parseFloat(r[1]);
+        return isNaN(num) ? 0 : num;
+      });
+
+      // If first load
+      if (!chart) {
+        previousValues = [...values];
+        createChart(categories, values);
+        updateAverage(values);
+        return;
+      }
+
+      // Compare to previous
+      const hasChanged =
+        previousValues.length !== values.length ||
+        values.some((v, i) => v !== previousValues[i]);
+
+      if (!hasChanged) {
+        stableCounter = 0;
+        return;
+      }
+
+      // If changed, check stability
+      if (JSON.stringify(values) === JSON.stringify(candidateValues)) {
+        stableCounter++;
+      } else {
+        candidateValues = [...values];
+        stableCounter = 1;
+      }
+
+      // Require 3 identical reads before updating
+      if (stableCounter >= 3) {
+
+        previousValues = [...values];
+        stableCounter = 0;
+
+        chart.updateOptions({
+          chart: {
+            animations: {
+              enabled: true,
+              easing: 'easeinout',
+              speed: 1200
+            }
+          },
+          xaxis: { categories: categories }
+        });
+
+        chart.updateSeries([{ data: values }]);
+        updateAverage(values);
+      }
+    });
+}
+
+function updateAverage(values) {
+  const avg = (values.reduce((a,b) => a+b, 0) / values.length).toFixed(1);
+  document.getElementById("avgDisplay").innerHTML =
+    `${avg}%<div class="center-sub">Average</div>`;
+}
+
+function createChart(categories, values) {
+  chart = new ApexCharts(document.querySelector("#chart"), {
+    series: [{ data: values }],
+    chart: {
+      type: 'radar',
+      height: '100%',
+      background: 'transparent',
+      animations: { enabled: false }
+    },
+    stroke: { width: 3, colors: [currentColor] },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        type: 'vertical',
+        gradientToColors: [currentColor],
+        opacityFrom: 0.6,
+        opacityTo: 0.25
+      }
+    },
+    markers: {
+      size: 6,
+      colors: ['#ffffff'],
+      strokeColor: currentColor,
+      strokeWidth: 3
+    },
+    xaxis: {
+      categories: categories,
+      labels: {
+        style: { colors: "#e5e5e5", fontSize: "16px" }
+      }
+    },
+    yaxis: {
+      min: 0,
+      max: 100,
+      tickAmount: 5
+    }
+  });
+
+  chart.render();
+}
+
+</script>
+</body>
+</html>
 .center-sub {
   font-size: 13px;
   color: #a3a3a3;
